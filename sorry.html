@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SORRY.EXE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --dusk: #241b2e;
+    --slate: #4a3f57;
+    --rose: #d98a9c;
+    --clay: #b8748a;
+    --sand: #f6efe9;
+    --ink: #2a2130;
+    --sage: #93a68f;
+    --pixel: "Press Start 2P", "Courier New", monospace;
+    --mono: "VT323", "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(circle at 25% 20%, rgba(217, 138, 156, 0.22), transparent 55%),
+      radial-gradient(circle at 80% 75%, rgba(147, 166, 143, 0.16), transparent 55%),
+      var(--dusk);
+    color: var(--sand);
+    font-family: var(--mono);
+    font-size: 22px;
+    line-height: 1.3;
+    overflow: hidden;
+  }
+  button, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--clay); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  #stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5vh 5vw;
+  }
+  .page { width: min(560px, 100%); max-height: 88vh; overflow: auto; }
+  .frame {
+    background: var(--sand);
+    color: var(--ink);
+    border: 3px solid var(--clay);
+    box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.5);
+  }
+  .tb {
+    padding: 8px 12px;
+    background: linear-gradient(90deg, var(--slate), var(--clay));
+    color: #fff;
+    font-family: var(--pixel);
+    font-size: 11px;
+  }
+  .body { padding: 22px 22px 24px; text-align: center; }
+  .body p { margin: 0 0 14px; font-size: 24px; }
+  .btn {
+    padding: 9px 18px;
+    background: var(--clay);
+    color: #fff;
+    border: 3px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 22px;
+  }
+  .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .btn.ghost { background: var(--sand); color: var(--ink); }
+  .btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 6px; }
+
+  #dots {
+    position: fixed;
+    left: 50%;
+    bottom: 5vh;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+  }
+  #dots span { width: 9px; height: 9px; background: rgba(255, 255, 255, 0.25); border: 2px solid rgba(255, 255, 255, 0.4); }
+  #dots span.on { background: var(--rose); border-color: var(--rose); }
+
+  #bootLog { min-height: 7em; white-space: pre-wrap; color: var(--rose); font-size: 22px; }
+  .meter { max-width: 460px; height: 22px; margin: 14px auto 0; padding: 2px; border: 3px solid var(--rose); }
+  .meter > i { display: block; width: 0; height: 100%; background: var(--clay); transition: width 0.4s steps(8); }
+
+  #letterText { white-space: pre-wrap; font-size: 24px; text-align: left; margin: 0 0 6px; }
+  .caret::after { content: "\258C"; color: var(--clay); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .talk-intro { text-align: left; }
+  #talkBox {
+    width: 100%;
+    min-height: 130px;
+    margin: 12px 0 14px;
+    padding: 12px;
+    background: #fff;
+    border: 3px solid var(--ink);
+    resize: vertical;
+    font-size: 22px;
+  }
+  .send-note { font-size: 18px; color: var(--slate); text-align: left; margin: 0 0 14px; }
+
+  #sorryList { text-align: left; margin: 4px 0 0; }
+  #sorryList div {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 0 0 10px;
+  }
+  #sorryList span.mark { color: var(--clay); }
+
+  @media (max-width: 480px) {
+    body { font-size: 20px; }
+    .body p { font-size: 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .meter > i { transition: none; }
+    .caret::after { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- 0: boot -->
+  <section class="page frame" id="p-boot">
+    <div class="tb" id="winTitle"></div>
+    <div class="body">
+      <div id="bootLog" aria-live="polite"></div>
+      <div class="meter" aria-hidden="true"><i id="bootFill"></i></div>
+    </div>
+  </section>
+
+  <!-- 1: apology letter -->
+  <section class="page frame" id="p-letter" hidden>
+    <div class="tb"><span>sorry.exe</span></div>
+    <div class="body">
+      <p id="letterText"></p>
+      <div class="btns" id="letterContinue" hidden><button class="btn" data-next>Continue</button></div>
+    </div>
+  </section>
+
+  <!-- 2: what i think i did -->
+  <section class="page frame" id="p-guess" hidden>
+    <div class="tb"><span>attempt.log</span></div>
+    <div class="body" style="text-align:left">
+      <p id="guessIntro"></p>
+      <div id="sorryList"></div>
+      <div class="btns" style="justify-content:flex-start; margin-top:16px">
+        <button class="btn" data-next>Continue</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3: tell me -->
+  <section class="page frame" id="p-talk" hidden>
+    <div class="tb"><span>talk.exe</span></div>
+    <div class="body talk-intro">
+      <p id="talkIntro"></p>
+      <textarea id="talkBox" placeholder="Type what's bothering you here..."></textarea>
+      <p class="send-note">This page can't send messages on its own. Pick one below to actually get it to me.</p>
+      <div class="btns" style="justify-content:flex-start">
+        <button class="btn" id="copyBtn">Copy text</button>
+        <button class="btn ghost" id="emailBtn">Open in email</button>
+        <button class="btn ghost" id="smsBtn">Open in messages</button>
+      </div>
+      <div class="btns" style="justify-content:flex-start; margin-top:18px">
+        <button class="btn" data-next>Skip, just finish</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4: closing -->
+  <section class="page frame" id="p-end" hidden>
+    <div class="tb"><span>always.exe</span></div>
+    <div class="body">
+      <p id="endText"></p>
+    </div>
+  </section>
+
+</div>
+
+<div id="dots" aria-hidden="true"></div>
+<div id="toast" role="status" aria-live="polite" style="position:fixed;left:50%;bottom:22px;transform:translateX(-50%);padding:10px 14px;background:var(--rose);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);text-align:center;z-index:50;" hidden></div>
+
+<script>
+/* ==========================================================
+   EDIT THIS BLOCK: everything the page says lives here.
+   Swap the placeholder lines for your own. Keep the quote
+   marks and commas.
+   ========================================================== */
+const CONFIG = {
+  title: "SORRY.EXE",
+  to: "Cupcake",
+  from: "Mambo",
+
+  // Your email or phone, used by the "Open in email / messages" buttons on the talk page.
+  // Leave a value as "" to hide that button.
+  myEmail: "",
+  myPhone: "",
+
+  // The apology, one line per paragraph. A little playful is fine, keep the sincerity clear.
+  letter: [
+    "Hey. I don't fully know what I did, but I know I upset you, and I'm sorry.",
+    "I'm not trying to make excuses, I just genuinely want to understand and fix it.",
+    "I built you a slightly overdramatic website about it, because apparently that's just what I do now.",
+    "But under the jokes, I mean this part completely: I'm sorry, and I care about you a lot."
+  ],
+
+  guessIntro: "Here's my honest attempt at figuring out what might've done it:",
+  // Each line is one guess. Edit these to your real best guesses, or leave as-is.
+  guesses: [
+    "Something I said that came out wrong.",
+    "Something I forgot or didn't follow through on.",
+    "Just not paying enough attention lately."
+  ],
+
+  talkIntro: "Whatever it actually is, I'd rather hear it straight from you than keep guessing. Type it below.",
+
+  endText: "Whenever you're ready to talk, I'm here. No rush, no pressure. I'm not going anywhere. 💜"
+};
+
+/* ==========================================================
+   Below here you don't need to change anything.
+   ========================================================== */
+const $ = (sel, el = document) => el.querySelector(sel);
+const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const sleep = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+
+document.title = CONFIG.title;
+$("#winTitle").textContent = CONFIG.title;
+$("#guessIntro").textContent = CONFIG.guessIntro;
+$("#talkIntro").textContent = CONFIG.talkIntro;
+$("#endText").textContent = CONFIG.endText;
+
+CONFIG.guesses.forEach(text => {
+  const row = document.createElement("div");
+  row.innerHTML = '<span class="mark">-</span><span></span>';
+  $("span:last-child", row).textContent = text;
+  $("#sorryList").appendChild(row);
+});
+
+if (!CONFIG.myEmail) $("#emailBtn").hidden = true;
+if (!CONFIG.myPhone) $("#smsBtn").hidden = true;
+
+/* ---------- page flow ---------- */
+const order = ["p-boot", "p-letter", "p-guess", "p-talk", "p-end"];
+const dotsWrap = $("#dots");
+order.slice(1, -1).forEach(() => dotsWrap.appendChild(document.createElement("span")));
+
+function show(id) {
+  order.forEach(pid => { $("#" + pid).hidden = pid !== id; });
+  const idx = order.indexOf(id) - 1;
+  $$("#dots span").forEach((d, i) => d.classList.toggle("on", i === idx));
+  dotsWrap.hidden = id === "p-boot" || id === "p-end";
+  const run = pageInit[id];
+  if (run && !$("#" + id).dataset.done) {
+    $("#" + id).dataset.done = "1";
+    run();
+  }
+}
+
+$$("[data-next]").forEach(btn => btn.addEventListener("click", () => {
+  const cur = btn.closest(".page").id;
+  show(order[order.indexOf(cur) + 1]);
+}));
+
+/* ---------- boot ---------- */
+async function bootSeq() {
+  const lines = [
+    `${CONFIG.title} v1.0`,
+    "checking messages...... 1 unread mood",
+    `locating ${CONFIG.to}...... found`,
+    "loading apology...... ok"
+  ];
+  const log = $("#bootLog");
+  const fill = $("#bootFill");
+  for (let i = 0; i < lines.length; i++) {
+    log.textContent += lines[i] + "\n";
+    fill.style.width = ((i + 1) / lines.length * 100) + "%";
+    await sleep(600);
+  }
+  await sleep(400);
+  show("p-letter");
+}
+
+/* ---------- apology letter ---------- */
+async function letterSeq() {
+  const el = $("#letterText");
+  const chars = Array.from(CONFIG.letter.join("\n\n"));
+  let skipTyping = false;
+  $("#p-letter").addEventListener("click", () => { skipTyping = true; }, { once: true });
+  el.classList.add("caret");
+  let out = "";
+  for (const c of chars) {
+    if (skipTyping || reduce) break;
+    out += c;
+    el.textContent = out;
+    await new Promise(r => setTimeout(r, c === "\n" ? 170 : 22));
+  }
+  el.textContent = chars.join("");
+  el.classList.remove("caret");
+  await sleep(300);
+  $("#letterContinue").hidden = false;
+}
+
+/* ---------- talk page: copy / email / sms ---------- */
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 2800);
+}
+
+$("#copyBtn").addEventListener("click", async () => {
+  const text = $("#talkBox").value.trim();
+  if (!text) { toast("Type something first."); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Copied! Paste it to me whenever you're ready.");
+  } catch (e) {
+    $("#talkBox").select();
+    toast("Couldn't auto-copy — text is selected, press Ctrl/Cmd+C.");
+  }
+});
+
+$("#emailBtn").addEventListener("click", () => {
+  const text = $("#talkBox").value.trim();
+  const subject = encodeURIComponent("Something's bothering me");
+  const body = encodeURIComponent(text || "(write it here)");
+  window.location.href = `mailto:${CONFIG.myEmail}?subject=${subject}&body=${body}`;
+});
+
+$("#smsBtn").addEventListener("click", () => {
+  const text = $("#talkBox").value.trim();
+  const body = encodeURIComponent(text || "");
+  window.location.href = `sms:${CONFIG.myPhone}?&body=${body}`;
+});
+
+const pageInit = {
+  "p-boot": bootSeq,
+  "p-letter": letterSeq
+};
+
+show("p-boot");
+</script>
+</body>
+</html>
